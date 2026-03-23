@@ -3,6 +3,7 @@ import nodemailer from "nodemailer"
 import jwt from "jsonwebtoken"
 import bcrypt from "bcrypt"
 
+
 const registerUser = async (req,res)=>{
     //get data from user
     //verify data id it is valid or not
@@ -155,7 +156,7 @@ try {
 
   const cookieOptions = {
     httpOnly: true,
-    secure: true, 
+    secure: false, 
     maxAge: 24 * 60 * 60 * 1000,
   };
 
@@ -180,4 +181,32 @@ try {
 }
 }
 
-export {registerUser,verifyUser,logIn} ;
+const getMe = async (req,res)=>{
+    //get user from req.user
+    //send response with user data  
+    try{
+    console.log(req.user);
+    const user = await User.findById(req.user.id).select('-password');
+    console.log("reached here")
+
+    if(!user){
+        return res.status(400).json({
+            success : false,
+            message:"user not found"
+        })
+    }
+    res.status(200).json({
+        success : true,
+        user
+    })
+
+    }catch(error){
+         return res.status(400).json({
+            success : false,
+            message:"error in getting profile"
+        })
+
+    }
+}
+
+export {registerUser,verifyUser,logIn,getMe} ;
