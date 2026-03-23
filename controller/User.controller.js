@@ -55,7 +55,7 @@ const registerUser = async (req,res)=>{
             },
             });
             const mailOptins = {
-                from: process.env.SENDERMAIL_MAILTAP,
+                from: process.env.SENDERMAIL_MAILTRAP,
                 to: user.email,
                 subject: "register user",
                 text: `please click on the following link : ${process.env.BASE_URL}/api/v1/users/verify/${token}`
@@ -225,5 +225,102 @@ const logOut = async(req,res)=>{
   }
 };
 
+const forgotPassword = async(req,res)=>{
+    //get data from body
+    //validate 
+    //find user based on email
+    //generate token for reset password
+    //store resettoken and token exipry in DB and save
+    //send reset token to user via mail
 
-export {registerUser,verifyUser,logIn,getMe,logOut} ;
+    try{
+       const {email} = req.body;
+       if(!email){
+        return res.status(400).json({
+            success : false,
+            message : "email is requried"
+        })
+       }
+       const user = await User.findOne({email});
+        if(!user){
+        return res.status(400).json({
+            success : false,
+            message : "User not found"
+        })
+       }
+       const token = (Math.floor(1000 + Math.random() * 9000)).toString();
+       user.resetpasswordToken = token;
+       user.resetpasswordExpires = Date.now() + 10 * 60 * 1000;
+       await user.save() 
+
+        const transporter = nodemailer.createTransport({
+            host: process.env.HOST_MAILTRAP,
+            port: process.env.PORT_MAILTRAP,
+            secure: false, // Use true for port 465, false for port 587
+            auth: {
+                user: process.env.USER_MAILTRAP,
+                pass: process.env.PASSWORD_MAILTRAP,
+            },
+            });
+            const mailOptins = {
+                from: process.env.SENDERMAIL_MAILTRAP,
+                to: user.email,
+                subject: "forgotPassword",
+                text: `please click on the following link : ${process.env.BASE_URL}/api/v1/users/forgotPassword/${token}`
+            }
+            await transporter.sendMail(mailOptins);
+
+            res.status(200).json({
+                success : true,
+                message : "Please check your mail "
+            })
+    }catch(error){
+        return res.status(400).json({
+            success : false,
+            message : "Mail not send ",
+            error
+        })
+    }
+}
+
+const resetPassword = async (req,res)=>{
+    console.log("here")
+    try{
+      const{token} = req.params;
+      const {password} = req.body;
+      console.log(password)
+      if(!password || !token){
+          return res.status(400).json({
+            success : false,
+            message : "new password or otp is missing",
+        })
+      }
+    const user = await User.findOne({
+        resetpasswordToken : token,
+        resetpasswordExpires :{$gt : Date.now()}
+    })
+    if(!user){
+          return res.status(400).json({
+            success : false,
+            message : "user not found",
+        })
+    }
+    user.password = password;
+    user.resetpasswordExpires = undefined;
+    user.resetpasswordToken = undefined;
+    await user.save();
+    return res.status(200).json({
+            success : true,
+            message : "password reset successfully",
+        })
+    }catch(error){
+          return res.status(400).json({
+            success : false,
+            message : "error in reseting password",
+            error
+        })
+    }
+}
+
+
+export {registerUser,verifyUser,logIn,getMe,logOut,forgotPassword,resetPassword} ;
