@@ -209,4 +209,21 @@ const getMe = async (req,res)=>{
     }
 }
 
-export {registerUser,verifyUser,logIn,getMe} ;
+const logOut = async(req,res)=>{
+  try {
+    //for log out cleare the token store in cookies
+    res.clearCookie("token");
+    res.status(200).json({
+      success: true,
+      message: "you are logged out",
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: "failed to log out",
+    });
+  }
+};
+
+
+export {registerUser,verifyUser,logIn,getMe,logOut} ;
